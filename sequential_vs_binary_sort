@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+programming exercise comparing binary and sequential searches
+for longer searches binary is much faster, even when taking into consideration sorting
+Created on Sun Jan  3 10:00:51 2021
+
+@author: stephankoehler
+"""
+import random
+import timeit
+import matplotlib.pyplot as plt
+import numpy as np
+
+#Generate 5 random numbers between 10 and 30
+# print( sortedList )
+
+# print(j)
+# target = sortedList[ j ]
+# target = sortedList[ 3 ]
+
+def sequential_search( target, randomList ):
+    for i in range(len(randomList)):
+        if randomList[i] == target:
+            break
+    return i
+        
+def binary_search( target, sortedList):
+    right = len( sortedList ) - 1
+    (left, middle) = (0, right//2)  
+    left, middle, right, counter = binary_search_loop( target, sortedList, left, middle, right, 0)      
+    return middle, counter
+
+def binary_search_loop( target, sortedList, left, middle, right, counter):
+    counter += 1
+    if not target == sortedList[middle]:
+        if target < sortedList[middle]:
+            (left, middle, right, counter) = binary_search_loop( target, sortedList, left, (left+middle-1)//2, middle, counter )
+        else:
+            (left, middle, right, counter) = binary_search_loop( target, sortedList, middle, (right+middle+1)//2, right, counter )
+    return left, middle, right, counter    
+
+
+def repeatBinarySearch(randomListLength, number, iter):    
+    randomList = np.zeros( randomListLength )
+    for i in range(randomListLength):
+        randomList[i] = random.random()
+    sortedList = randomList
+    sortedList.sort()          
+    t_binary = np.zeros( iter )
+    t_sequential = np.zeros( iter )
+    for i in range( iter ):
+        target = sortedList[ random.randint(0, len(sortedList)-1) ]
+        fnc = timeit.Timer( lambda: sequential_search( target, sortedList) )
+        t_sequential[i] = fnc.timeit( number )
+        fnc = timeit.Timer( lambda: binary_search( target, sortedList) )
+        t_binary[i] = fnc.timeit( number )
+    return t_binary, t_sequential
+
+number = 100  
+iter = 10
+randomListLength = list( map( int, [10, 1E2, 1E4] ) )
+#%%
+fig, axs = plt.subplots(len(randomListLength))
+fig.suptitle('number = {}, iter = {}'.format( number, iter ) )
+plt.xlabel('log10( time for binary / time for sequential )')
+
+t_binary = np.zeros( ( len( randomListLength), iter ) )
+t_sequential = np.zeros( ( len( randomListLength), iter ) )
+
+for i in range( len( randomListLength) ):
+    t_binary[i, :], t_sequential[i, :] = repeatBinarySearch( randomListLength[i], number, iter )
+#%%%
+ratioLog10 = np.log10( t_binary/t_sequential )
+#%%%
+bins = np.linspace( min(ratioLog10.flatten()), max(ratioLog10.flatten()), 20 )
+bins = np.append( bins, bins[-1]+bins[2]-bins[1])
+#%%%     
+for i in range( len( randomListLength) ):    
+    axs[i].hist( x = ratioLog10[i], bins  = bins )
+    axs[i].set_ylabel('length {:.0E}'.format( randomListLength[i] ) )
+    tmp = axs[i].get_xticks([])
+    axs[i].set_xticks([])
+axs[i].set_xticks(tmp)    
+
+#%%
